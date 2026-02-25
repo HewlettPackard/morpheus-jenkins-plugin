@@ -1,23 +1,28 @@
 package com.morpheusdata.jenkins
 
-import com.morpheusdata.core.AbstractTaskService
 import com.morpheusdata.core.ExecutableTaskInterface
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
-import com.morpheusdata.core.TaskProvider
+import com.morpheusdata.core.providers.TaskProvider
+import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.Icon
+import com.morpheusdata.model.Instance
 import com.morpheusdata.model.OptionType
+import com.morpheusdata.model.Task
+import com.morpheusdata.model.TaskConfig
+import com.morpheusdata.model.TaskResult
 import com.morpheusdata.model.TaskType
+import com.morpheusdata.model.Workload
 
 class JenkinsTaskProvider implements TaskProvider {
     MorpheusContext morpheusContext
     Plugin plugin
-    AbstractTaskService service
+    JenkinsTaskService service
 
     JenkinsTaskProvider(Plugin plugin, MorpheusContext morpheusContext) {
         this.plugin = plugin
         this.morpheusContext = morpheusContext
-        this.service = new JenkinsTaskService(morpheus)
+        this.service = new JenkinsTaskService(morpheusContext)
     }
 
     @Override
@@ -31,7 +36,7 @@ class JenkinsTaskProvider implements TaskProvider {
     }
 
     /**
-     * A flag indicating if this task can be configured to execute on a remote context
+     * A flag indicating if this task can be configured to execute on a local context
      * @return boolean
      */
     @Override
@@ -77,7 +82,7 @@ class JenkinsTaskProvider implements TaskProvider {
 
     /**
      * A flag indicating if the TaskType presents results that can be chained into other tasks
-     * @return
+     * @return boolean
      */
     @Override
     Boolean hasResults() {
@@ -97,7 +102,6 @@ class JenkinsTaskProvider implements TaskProvider {
                 new OptionType(code: 'jenkins.serviceToken', name: 'Service Token', inputType: OptionType.InputType.PASSWORD, fieldName: 'servicePassword', fieldLabel: 'Token', displayOrder: 3),
                 new OptionType(code: 'jenkins.jobName', name: 'Job Name', inputType: OptionType.InputType.TEXT, fieldName: 'jobName', fieldLabel: 'Job Name', displayOrder: 4),
                 new OptionType(code: 'jenkins.buildParameters', name: 'Build Parameters', inputType: OptionType.InputType.CODE_EDITOR, fieldName: 'buildParameters', fieldLabel: 'Build Parameters', displayOrder: 5),
-
         ]
     }
 
@@ -143,11 +147,109 @@ class JenkinsTaskProvider implements TaskProvider {
 
     /**
      * Returns the Task Type Icon for display when a user is browsing tasks
-     * @since 0.12.7
      * @return Icon representation of assets stored in the src/assets of the project.
      */
     @Override
     Icon getIcon() {
         return new Icon(path:"jenkins-black.svg", darkPath: "jenkins-white.svg")
+    }
+
+    /**
+     * @deprecated Method has been rolled up into the TaskProvider interface directly.
+     */
+    @Override
+    ExecutableTaskInterface getService() {
+        return null
+    }
+
+    /**
+     * Task execution in a local context
+     *
+     * @param task Morpheus task to be executed
+     * @param opts contains the values of any OptionType that were defined for this task
+     * @param workload optional Workload details
+     * @param server optional ComputeServer details
+     * @param instance optional Instance details
+     * @return the result of the task
+     */
+    @Override
+    TaskResult executeLocalTask(Task task, Map opts, Workload workload, ComputeServer server, Instance instance) {
+        TaskConfig config
+        if(workload) {
+            config = morpheus.buildWorkloadConfig(workload, [:], task, [], opts).blockingGet()
+        } else if(instance) {
+            config = morpheus.buildInstanceConfig(instance, [:], task, [], opts).blockingGet()
+        } else {
+            config = morpheus.buildComputeServerConfig(server, [:], task, [], opts).blockingGet()
+        }
+        service.executeTask(task, config)
+    }
+
+    /**
+     * Task execution on a provisioned ComputeServer
+     *
+     * @param server server details
+     * @param task Morpheus task to be executed
+     * @param opts contains the values of any OptionType that were defined for this task
+     * @return the result of the task
+     */
+    @Override
+    TaskResult executeServerTask(ComputeServer server, Task task, Map opts) {
+        TaskConfig config = morpheus.buildComputeServerConfig(server, [:], task, [], opts).blockingGet()
+        service.executeTask(task, config)
+    }
+
+    @Override
+    TaskResult executeServerTask(ComputeServer server, Task task) {
+        return executeServerTask(server, task, [:])
+    }
+
+    /**
+     * Task execution on a provisioned Workload
+     *
+     * @param workload Workload details
+     * @param task Morpheus task to be executed
+     * @param opts contains the values of any OptionType that were defined for this task
+     * @return the result of the task
+     */
+    @Override
+    TaskResult executeContainerTask(Workload workload, Task task, Map opts) {
+        TaskConfig config = morpheus.buildWorkloadConfig(workload, [:], task, [], opts).blockingGet()
+        service.executeTask(task, config)
+    }
+
+    @Override
+    TaskResult executeContainerTask(Workload workload, Task task) {
+        return executeContainerTask(workload, task, [:])
+    }
+
+    /**
+     * Task execution in a remote context
+     *
+     * @param task Morpheus task to be executed
+     * @param opts contains the values of any OptionType that were defined for this task
+     * @param workload optional {@link Workload} details
+     * @param server optional {@link ComputeServer} details
+     * @param instance optional {@link Instance} details
+     * @return the result of the task
+     */
+    @Override
+    TaskResult executeRemoteTask(Task task, Map opts, Workload workload, ComputeServer server, Instance instance) {
+        TaskConfig config = morpheus.buildComputeServerConfig(server, [:], task, [], opts).blockingGet()
+        service.executeTask(task, config)
+    }
+
+    /**
+     * Task execution in a remote context
+     *
+     * @param task Morpheus task to be executed
+     * @param workload optional {@link Workload} details
+     * @param server optional {@link ComputeServer} details
+     * @param instance optional {@link Instance} details
+     * @return the result of the task
+     */
+    @Override
+    TaskResult executeRemoteTask(Task task, Workload workload, ComputeServer server, Instance instance) {
+        return executeRemoteTask(task, [:], workload, server, instance)
     }
 }

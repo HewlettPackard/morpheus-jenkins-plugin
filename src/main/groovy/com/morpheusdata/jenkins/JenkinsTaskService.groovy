@@ -1,20 +1,15 @@
 package com.morpheusdata.jenkins
 
-import com.morpheusdata.core.AbstractTaskService
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.HttpApiClient
-import com.morpheusdata.model.ComputeServer
-import com.morpheusdata.model.Container
-import com.morpheusdata.model.Instance
 import com.morpheusdata.model.Task
 import com.morpheusdata.model.TaskConfig
 import com.morpheusdata.model.TaskResult
 import groovy.json.JsonSlurper
-import groovy.text.SimpleTemplateEngine
 import groovy.util.logging.Slf4j
 
 @Slf4j
-class JenkinsTaskService extends AbstractTaskService {
+class JenkinsTaskService {
     MorpheusContext morpheus
 
     JenkinsTaskService(MorpheusContext morpheus) {
@@ -22,90 +17,7 @@ class JenkinsTaskService extends AbstractTaskService {
     }
 
     /**
-     * Task execution in a local context
-     *
-     * @param task Morpheus task to be executed
-     * @param opts contains the values of any OptionType that were defined for this task
-     * @param container optional Container details
-     * @param server optional ComputeServer details
-     * @param instance optional Instance details
-     * @return the result of the task
-     */
-    @Override
-    TaskResult executeLocalTask(Task task, Map opts, Container container, ComputeServer server, Instance instance) {
-        TaskConfig config = buildLocalTaskConfig([:], task, [], opts).blockingGet()
-        if(instance) {
-            config = buildInstanceTaskConfig(instance, [:], task, [], opts).blockingGet()
-        }
-        if(container) {
-            config = buildContainerTaskConfig(container, [:], task, [], opts).blockingGet()
-        }
-
-        executeTask(task, config)
-    }
-
-    /**
-     * Task execution on a provisioned ComputeServer
-     *
-     * @param server server details
-     * @param task Morpheus task to be executed
-     * @param opts contains the values of any OptionType that were defined for this task
-     * @return the result of the task
-     */
-    @Override
-    TaskResult executeServerTask(ComputeServer server, Task task, Map opts=[:]) {
-        TaskConfig config = buildComputeServerTaskConfig(server, [:], task, [], opts).blockingGet()
-        executeTask(task, config)
-    }
-
-
-    /**
-     * Task execution on a provisioned Container
-     *
-     * @param container Container details
-     * @param task Morpheus task to be executed
-     * @param opts contains the values of any OptionType that were defined for this task
-     * @return the result of the task
-     */
-    @Override
-    TaskResult executeContainerTask(Container container, Task task, Map opts = [:]) {
-        TaskConfig config = buildContainerTaskConfig(container, [:], task, [], opts).blockingGet()
-        executeTask(task, config)
-    }
-
-
-    /**
-     * Task execution in a remote context
-     *
-     * @param task Morpheus task to be executed
-     * @param opts contains the values of any OptionType that were defined for this task
-     * @param container optional {@link Container} details
-     * @param server optional {@link ComputeServer} details
-     * @param instance optional {@link Instance} details
-     * @return the result of the task
-     */
-    @Override
-    TaskResult executeRemoteTask(Task task, Map opts, Container container, ComputeServer server, Instance instance) {
-        TaskConfig config = buildRemoteTaskConfig([:], task, [], opts).blockingGet()
-        executeTask(task, config)
-    }
-
-    /**
-     * Task execution in a remote context
-     *
-     * @param task Morpheus task to be executed
-     * @param container optional {@link Container} details
-     * @param server optional {@link ComputeServer} details
-     * @param instance optional {@link Instance} details
-     * @return the result of the task
-     */
-    @Override
-    TaskResult executeRemoteTask(Task task, Container container, ComputeServer server, Instance instance) {
-        executeRemoteTask(task,[:],container,server,instance)
-    }
-
-    /**
-     *
+     * Core Jenkins build trigger and polling logic
      *
      * @param task
      * @param config
@@ -114,10 +26,10 @@ class JenkinsTaskService extends AbstractTaskService {
     TaskResult executeTask(Task task, TaskConfig config) {
         println config.accountId
         String jenkinsUrl = task.taskOptions.find { it.optionType.code == 'jenkins.serviceUrl' }?.value
-        String jenkinsUser =  task.taskOptions.find { it.optionType.code == 'jenkins.serviceUser' }?.value
-        String jenkinsToken =  task.taskOptions.find { it.optionType.code == 'jenkins.serviceToken' }?.value
-        String jobName =  task.taskOptions.find { it.optionType.code == 'jenkins.jobName' }?.value
-        String jenkinsParameters =  task.taskOptions.find { it.optionType.code == 'jenkins.buildParameters' }?.value
+        String jenkinsUser = task.taskOptions.find { it.optionType.code == 'jenkins.serviceUser' }?.value
+        String jenkinsToken = task.taskOptions.find { it.optionType.code == 'jenkins.serviceToken' }?.value
+        String jobName = task.taskOptions.find { it.optionType.code == 'jenkins.jobName' }?.value
+        String jenkinsParameters = task.taskOptions.find { it.optionType.code == 'jenkins.buildParameters' }?.value
 
         HttpApiClient client = new HttpApiClient()
         try {
@@ -204,5 +116,4 @@ class JenkinsTaskService extends AbstractTaskService {
             client.shutdownClient()
         }
     }
-
 }

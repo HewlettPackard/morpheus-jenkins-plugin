@@ -18,9 +18,9 @@ apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'asset-pipeline'
 
-group = 'com.bluecatnetworks.bluecat'
-sourceCompatibility = '1.11'
-targetCompatibility = '1.11'
+group = 'com.morpheusdata.jenkins'
+sourceCompatibility = '11'
+targetCompatibility = '11'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 repositories {
@@ -28,20 +28,15 @@ repositories {
 	mavenCentral()
 }
 
-configurations {
-	provided
-}
-
 dependencies {
-	provided "com.morpheusdata:morpheus-plugin-api:0.12.7"
-	provided "org.codehaus.groovy:groovy-all:$groovyVersion"
+	compileOnly "com.morpheusdata:morpheus-plugin-api:$morpheusApiVersion"
+	compileOnly "org.codehaus.groovy:groovy-all:$groovyVersion"
 	implementation 'commons-beanutils:commons-beanutils:1.9.3'
 	implementation "org.slf4j:slf4j-api:$slf4jVersion"
 	implementation "org.slf4j:slf4j-parent:$slf4jVersion"
 	implementation 'commons-net:commons-net:3.6'
 
-	// Include morpheus-core and it's dependencies
-	testImplementation 'io.reactivex.rxjava2:rxjava:2.2.0'
+	testImplementation 'io.reactivex.rxjava3:rxjava:3.1.6'
 	testImplementation 'org.apache.httpcomponents:httpclient:4.5.3'
 	testImplementation 'org.apache.httpcomponents:httpcore:4.4.5'
 	testImplementation "org.slf4j:slf4j-parent:$slf4jVersion"
@@ -53,12 +48,6 @@ dependencies {
 	testImplementation 'cglib:cglib-nodep:3.2.12'
 }
 
-
-sourceSets {
-	main {
-		compileClasspath += configurations.provided
-	}
-}
 
 jar {
 	manifest {
@@ -74,7 +63,7 @@ jar {
 				'Morpheus-Color': '#ffffff',
 				'Morpheus-Labels': 'Plugin, Build',
 				'Morpheus-Repo': 'https://github.com/gomorpheus/morpheus-plugin-core',
-				'Morpheus-Min-Appliance-Version': "5.4.12"
+				'Morpheus-Min-Appliance-Version': "8.0.0"
 		)
 	}
 }
