@@ -11,7 +11,7 @@ class JenkinsPlugin extends Plugin {
 	@Override
 	void initialize() {
 		 JenkinsTaskProvider jenkinsTaskProvider = new JenkinsTaskProvider(this, morpheus)
-		 this.pluginProviders.put("jenkins", jenkinsTaskProvider)
+		 this.registerProvider(jenkinsTaskProvider)
 		 this.setName("Jenkins")
 	}
 
@@ -20,6 +20,6 @@ class JenkinsPlugin extends Plugin {
 	 */
 	@Override
 	void onDestroy() {
-		morpheus.task.disableTask('jenkins').blockingGet()
+		morpheus.async.task.disableTask('jenkins').blockingGet()
 	}
 }
