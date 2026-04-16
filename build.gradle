@@ -3,10 +3,14 @@ buildscript {
         mavenLocal()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
+        maven { url = "https://nexus.bertramlabs.com/content/repositories/snapshots" }
+		maven { url = "https://nexus.bertramlabs.com/content/repositories/releases" }
+		maven { url = "https://nexus.bertramlabs.com/content/repositories/publicReleases" }
     }
     dependencies {
-        classpath "com.github.jengelman.gradle.plugins:shadow:6.0.0"
+        classpath "com.github.johnrengelman:shadow:8.1.1"
         classpath "com.bertramlabs.plugins:asset-pipeline-gradle:$assetPipelineVersion"
+        classpath "com.morpheusdata:morpheus-plugin-gradle:$morpheusGradleVersion"
     }
 }
 
@@ -17,10 +21,11 @@ apply plugin: 'groovy'
 apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'asset-pipeline'
+apply plugin: 'com.morpheusdata.morpheus-plugin-gradle'
 
 group = 'com.bluecatnetworks.bluecat'
-sourceCompatibility = '1.11'
-targetCompatibility = '1.11'
+sourceCompatibility = '25'
+targetCompatibility = '25'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 repositories {
@@ -30,11 +35,16 @@ repositories {
 
 configurations {
 	provided
+	configureEach {
+		resolutionStrategy.capabilitiesResolution.all {
+			selectHighestVersion()
+		}
+	}
 }
 
 dependencies {
-	provided "com.morpheusdata:morpheus-plugin-api:0.12.7"
-	provided "org.codehaus.groovy:groovy-all:$groovyVersion"
+	provided "com.morpheusdata:morpheus-plugin-api:$morpheusPluginApiVersion"
+	provided "org.apache.groovy:groovy-all:$groovyVersion"
 	implementation 'commons-beanutils:commons-beanutils:1.9.3'
 	implementation "org.slf4j:slf4j-api:$slf4jVersion"
 	implementation "org.slf4j:slf4j-parent:$slf4jVersion"
@@ -46,7 +56,7 @@ dependencies {
 	testImplementation 'org.apache.httpcomponents:httpcore:4.4.5'
 	testImplementation "org.slf4j:slf4j-parent:$slf4jVersion"
 
-	testImplementation "org.codehaus.groovy:groovy-all:$groovyVersion"
+	testImplementation "org.apache.groovy:groovy-all:$groovyVersion"
 	testImplementation 'net.bytebuddy:byte-buddy:1.9.3'
 	testImplementation 'org.objenesis:objenesis:2.6'
 	testImplementation "org.spockframework:spock-core:$spockVersion"
@@ -74,7 +84,7 @@ jar {
 				'Morpheus-Color': '#ffffff',
 				'Morpheus-Labels': 'Plugin, Build',
 				'Morpheus-Repo': 'https://github.com/gomorpheus/morpheus-plugin-core',
-				'Morpheus-Min-Appliance-Version': "5.4.12"
+				'Morpheus-Min-Appliance-Version': morphApplianceMinVersion
 		)
 	}
 }

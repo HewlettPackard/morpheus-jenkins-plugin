@@ -150,7 +150,7 @@ class JenkinsTaskService extends AbstractTaskService {
                         return new TaskResult(
                                 success: false,
                                 data   : results.data,
-                                output : results.content
+                                output : results.data?.toString()
                         )
                     }
                     sleep(5000l)
