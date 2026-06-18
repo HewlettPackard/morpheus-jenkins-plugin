@@ -1,17 +1,67 @@
-# Jenkins Build Task
+# Morpheus Jenkins Plugin
 
-This plugin exposes a new custom Task type for triggering builds in a jenkins project and awaiting completion of the build. This utilizes the service api token and username to kick off a build along with the job name. Once the build is completed, the contents of the `/api/json` endpoint is pushed into the results chain. This can include information such as the artefact url.
+This plugin provides task automation integration between [Jenkins](https://www.jenkins.io) and [Morpheus](https://morpheusdata.com). It enables Jenkins job triggering, parameterized builds, queue polling, build status polling, and task result chaining from within the Morpheus platform.
 
-## Installing
+## Requirements
 
-First check to make sure the version of Morpheus installed is above or equal to the minimum required version of this plugin and then download the plugin file above.
-Once the file is downloaded, browse to the Administration -> Integrations -> Plugins section of the Morpheus appliance. Click the Upload File button to select your plugin and upload it.
-The plugin should now be loaded into the environment for use.
+| Component | Minimum Version |
+|-----------|----------------|
+| Morpheus | 9.0.0 |
 
-## Configuring
+## Installation
 
-Once the plugin is loaded into the environment, a new task type is made available in the Library -> Automation section. This task type is called Jenkins and allows one to enter the relevant parameters to trigger a build. Build parameters are also accepted in form url encoded format and is passed to `buildWithParameters` as is. Some projects don't need these but if necessary they can be filled out.
+1. Download the latest `.jar` from the [Releases](https://github.com/HewlettPackard/morpheus-jenkins-plugin/releases) page, or [build it yourself](#building).
+2. In Morpheus, navigate to **Administration → Integrations → Plugins**.
+3. Click **Browse** and upload the `.jar` file.
+4. The **Jenkins Trigger Build** task type will appear after the plugin loads.
 
-## Things to be done
+## Configuration
 
-It is not yet possible to use morpheus context variables in the build parameters payload. This would be a nice future enhancement for this task type.
+When adding a Jenkins task in Morpheus (**Library → Automation → Tasks → Add Task**), provide the following:
+
+| Field | Description |
+|-------|-------------|
+| **API Url** | Jenkins base URL used for API calls |
+| **Username** | Jenkins username used to trigger builds |
+| **Token** | Jenkins API token or password for the configured user |
+| **Job Name** | Jenkins job name to trigger |
+| **Build Parameters** | Optional JSON object of build parameters passed to `buildWithParameters` |
+
+## Features
+
+### Jenkins Task Type
+The plugin registers a Morpheus `TaskProvider` named **Jenkins Trigger Build**. Supported task behavior includes:
+
+- Execute as a Morpheus app-scoped local task
+- Trigger Jenkins jobs through the Jenkins API
+- Trigger `build` when no parameters are supplied
+- Trigger `buildWithParameters` when build parameters are supplied
+- Accept build parameters as JSON and send them as Jenkins query parameters
+
+### Build Monitoring
+Triggered Jenkins builds are monitored until completion. Supported operations include:
+
+- Poll the Jenkins queue API until the queued item resolves to a build
+- Detect stuck queue items and fail the Morpheus task
+- Poll the Jenkins build API until the build is no longer running
+- Mark Morpheus task success when the Jenkins result is not `FAILURE`
+- Mark Morpheus task failure for failed Jenkins builds or timeout conditions
+
+### Task Results
+The task type exposes Jenkins build details back to Morpheus automation workflows. Supported result behavior includes:
+
+- Return the Jenkins build API response as task result data
+- Use the Jenkins build `fullDisplayName` as task output
+- Enable downstream Morpheus tasks to consume Jenkins build results through task result chaining
+
+## Building
+
+```bash
+./gradlew shadowJar
+```
+
+The plugin JAR will be written to `build/libs/`.
+
+## License
+
+Copyright 2024 Morpheus Data, LLC. Licensed under the [Apache License, Version 2.0](LICENSE).
