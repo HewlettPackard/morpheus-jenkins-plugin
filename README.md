@@ -1,67 +1,124 @@
 # Morpheus Jenkins Plugin
 
-This plugin provides task automation integration between [Jenkins](https://www.jenkins.io) and [Morpheus](https://morpheusdata.com). It enables Jenkins job triggering, parameterized builds, queue polling, build status polling, and task result chaining from within the Morpheus platform.
+The Morpheus Jenkins Plugin integrates Morpheus with Jenkins to enable triggering Jenkins build jobs as part of Morpheus task and workflow automation. The plugin provides a task provider that calls the Jenkins REST API to queue a build with optional parameters.
 
-## Requirements
+## Table of Contents
 
-| Component | Minimum Version |
-|-----------|----------------|
-| Morpheus | 9.0.0 |
+- [Features](#features)
+- [Requirements](#requirements)
+- [Repository structure](#repository-structure)
+- [Building the plugin](#building-the-plugin)
+- [License](#license)
+- [Installing](#installing)
+- [Detailed Usage Steps](#detailed-usage-steps)
+- [API Endpoints](#api-endpoints)
 
-## Installation
-
-1. Download the latest `.jar` from the [Releases](https://github.com/HewlettPackard/morpheus-jenkins-plugin/releases) page, or [build it yourself](#building).
-2. In Morpheus, navigate to **Administration → Integrations → Plugins**.
-3. Click **Browse** and upload the `.jar` file.
-4. The **Jenkins Trigger Build** task type will appear after the plugin loads.
-
-## Configuration
-
-When adding a Jenkins task in Morpheus (**Library → Automation → Tasks → Add Task**), provide the following:
-
-| Field | Description |
-|-------|-------------|
-| **API Url** | Jenkins base URL used for API calls |
-| **Username** | Jenkins username used to trigger builds |
-| **Token** | Jenkins API token or password for the configured user |
-| **Job Name** | Jenkins job name to trigger |
-| **Build Parameters** | Optional JSON object of build parameters passed to `buildWithParameters` |
+---
 
 ## Features
 
-### Jenkins Task Type
-The plugin registers a Morpheus `TaskProvider` named **Jenkins Trigger Build**. Supported task behavior includes:
+### Jenkins Task Provider
 
-- Execute as a Morpheus app-scoped local task
-- Trigger Jenkins jobs through the Jenkins API
-- Trigger `build` when no parameters are supplied
-- Trigger `buildWithParameters` when build parameters are supplied
-- Accept build parameters as JSON and send them as Jenkins query parameters
+Execute Jenkins build jobs from Morpheus tasks and workflows. Supports parameterised builds and configurable job names. The task can be used in provisioning workflows, operational tasks, and automation pipelines.
 
-### Build Monitoring
-Triggered Jenkins builds are monitored until completion. Supported operations include:
+---
 
-- Poll the Jenkins queue API until the queued item resolves to a build
-- Detect stuck queue items and fail the Morpheus task
-- Poll the Jenkins build API until the build is no longer running
-- Mark Morpheus task success when the Jenkins result is not `FAILURE`
-- Mark Morpheus task failure for failed Jenkins builds or timeout conditions
+## Requirements
 
-### Task Results
-The task type exposes Jenkins build details back to Morpheus automation workflows. Supported result behavior includes:
+| Requirement | Version |
+|-------------|---------|
+| Morpheus | 9.0.0 or later |
+| Java | 25 or later |
+| Gradle | Use the included Gradle wrapper (`./gradlew`) |
 
-- Return the Jenkins build API response as task result data
-- Use the Jenkins build `fullDisplayName` as task output
-- Enable downstream Morpheus tasks to consume Jenkins build results through task result chaining
+Additional prerequisites:
 
-## Building
+- A running Jenkins server accessible over HTTP or HTTPS from the Morpheus appliance
+- A Jenkins user account and API token with permission to trigger builds on the target job
+- Network access from the Morpheus appliance to the Jenkins server on the configured port
 
-```bash
-./gradlew shadowJar
+---
+
+## Repository structure
+
+```
+src/main/groovy/com/morpheusdata/jenkins/
+├── JenkinsPlugin.groovy        - Plugin entry point; registers JenkinsTaskProvider
+├── JenkinsTaskProvider.groovy  - TaskProvider implementation; OptionTypes and task execution logic
+└── JenkinsTaskService.groovy   - Service class; calls the Jenkins API to trigger builds
+build.gradle, gradle.properties - Build configuration and plugin metadata
 ```
 
-The plugin JAR will be written to `build/libs/`.
+---
+
+## Building the plugin
+
+Run the following command to compile and package the plugin jar:
+
+```bash
+./gradlew clean build
+```
+
+The packaged jar will be written to `build/libs/`.
+
+To execute tests, use the following command:
+
+```bash
+./gradlew test
+```
+
+---
 
 ## License
 
-Copyright 2024 Morpheus Data, LLC. Licensed under the [Apache License, Version 2.0](LICENSE).
+This project is licensed under the Apache License 2.0.
+
+See the [LICENSE](LICENSE) file for details.
+
+---
+
+## Installing
+
+1. Build the plugin (see [Building the plugin](#building-the-plugin)) or download a released jar.
+2. In Morpheus, navigate to **Administration > Integrations > Plugins**.
+3. Click **Add** and upload the `morpheus-jenkins-plugin-<version>.jar` from `build/libs/`.
+4. The **Jenkins Job** task type will be available under **Library > Automation > Tasks > Add**.
+
+---
+
+## Detailed Usage Steps
+
+### Creating a Jenkins Task
+
+1. Go to **Library > Automation > Tasks > Add**.
+2. Select **Jenkins Job** as the task type.
+3. Configure:
+   - **API Url** — Jenkins base URL, e.g. `https://jenkins.example.com`
+   - **Username** — Jenkins user for authentication
+   - **Token** — Jenkins API token for the above user
+   - **Job Name** — the Jenkins job path (e.g. `my-folder/my-job`)
+   - **Build Parameters** — optional JSON key/value pairs passed to the parameterised build
+4. Save the task.
+
+### Running the Task in a Workflow
+
+1. Go to **Library > Automation > Workflows > Add** (or edit an existing workflow).
+2. Add the Jenkins task to the desired phase (e.g. Post Provision).
+3. Associate the workflow with an instance type or run it manually from an instance.
+
+### Running the Task Manually
+
+1. From an instance detail page, go to **Actions > Run Task**.
+2. Select the Jenkins task and confirm. Morpheus calls the Jenkins API to queue the build.
+
+---
+
+## API Endpoints
+
+This plugin communicates with the **Jenkins REST API** at the configured API Url. Authentication uses HTTP Basic with username and API token.
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `{jenkinsUrl}/job/{jobName}/build` | POST | Trigger a build (no parameters) |
+| `{jenkinsUrl}/job/{jobName}/buildWithParameters` | POST | Trigger a parameterised build |
+| `{jenkinsUrl}/job/{jobName}/lastBuild/api/json` | GET | Get last build status |
